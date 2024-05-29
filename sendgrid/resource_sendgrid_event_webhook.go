@@ -69,7 +69,7 @@ func resourceSendgridEventWebhook() *schema.Resource { //nolint:funlen
 			},
 			"friendly_name": {
 				Type:        schema.TypeString,
-				Description: "Optionally set this property to a friendly name for the Event Webhook. A friendly name may be assigned to each of your webhooks to help you differentiate them. The friendly name is for convenience only. You should use the webhook id property for any programmatic tasks.",
+				Description: "A friendly name may be assigned to each of your webhooks to help you differentiate them.",
 				Optional:    true,
 			},
 			"group_unsubscribe": {
