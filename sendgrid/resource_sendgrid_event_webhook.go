@@ -38,7 +38,7 @@ func resourceSendgridEventWebhook() *schema.Resource { //nolint:funlen
 	return &schema.Resource{
 		CreateContext: resourceSendgridEventWebhookCreate,
 		ReadContext:   resourceSendgridEventWebhookRead,
-		UpdateContext: resourceSendgridEventWebhookPatch,
+		UpdateContext: resourceSendgridEventWebhookUpdate,
 		DeleteContext: resourceSendgridEventWebhookDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -180,7 +180,7 @@ func resourceSendgridEventWebhookDelete(ctx context.Context, d *schema.ResourceD
 	return nil
 }
 
-func resourceSendgridEventWebhookPatch(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceSendgridEventWebhookUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*sendgrid.Client)
 
 	id := d.Id()

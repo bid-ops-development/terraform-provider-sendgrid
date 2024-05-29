@@ -161,7 +161,7 @@ func (c *Client) UpdateEventWebhook(ctx context.Context, id string, enabled bool
 	if statusCode >= http.StatusMultipleChoices {
 		return nil, RequestError{
 			StatusCode: statusCode,
-			Err:        fmt.Errorf("%w, status: %d, response: %s", ErrFailedPatchingEventWebhook, statusCode, respBody),
+			Err:        fmt.Errorf("%w, status: %d, response: %s", ErrFailedUpdatingEventWebhook, statusCode, respBody),
 		}
 	}
 
@@ -189,14 +189,14 @@ func (c *Client) ConfigureEventWebhookSigning(ctx context.Context, enabled bool)
 	if err != nil {
 		return nil, RequestError{
 			StatusCode: http.StatusInternalServerError,
-			Err:        fmt.Errorf("failed patching event webhook: %w", err),
+			Err:        fmt.Errorf("failed creating event webhook: %w", err),
 		}
 	}
 
 	if statusCode >= http.StatusMultipleChoices {
 		return nil, RequestError{
 			StatusCode: statusCode,
-			Err:        fmt.Errorf("%w, status: %d, response: %s", ErrFailedPatchingEventWebhook, statusCode, respBody),
+			Err:        fmt.Errorf("%w, status: %d, response: %s", ErrFailedCreatingEventWebhook, statusCode, respBody),
 		}
 	}
 

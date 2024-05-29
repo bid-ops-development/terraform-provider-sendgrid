@@ -74,7 +74,7 @@ var (
 
 	ErrFailedCreatingEventWebhook = errors.New("failed to create event webhook")
 
-	ErrFailedPatchingEventWebhook = errors.New("failed to patch event webhook")
+	ErrFailedUpdatingEventWebhook = errors.New("failed to update event webhook")
 
 	ErrFailedDeletingEventWebhook = errors.New("failed to delete event webhook")
 
