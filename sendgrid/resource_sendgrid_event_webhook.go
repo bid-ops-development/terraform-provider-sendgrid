@@ -171,10 +171,12 @@ func resourceSendgridEventWebhookDelete(ctx context.Context, d *schema.ResourceD
 	c := m.(*sendgrid.Client)
 
 	id := d.Id()
-	err := c.DeleteEventWebhook(ctx, id)
+	_, err := sendgrid.RetryOnRateLimit(ctx, d, func() (interface{}, sendgrid.RequestError) {
+		return nil, c.DeleteEventWebhook(ctx, id)
+	})
 
-	if err.Err != nil {
-		return diag.FromErr(err.Err)
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	return nil
@@ -284,10 +286,8 @@ func resourceSendgridEventWebhookCreate(ctx context.Context, d *schema.ResourceD
 		return diag.FromErr(err)
 	}
 
-	if d.HasChange("signed") {
-		if _, err := c.ConfigureEventWebhookSigning(ctx, d.Get("signed").(bool)); err.Err != nil {
-			return diag.FromErr(err.Err)
-		}
+	if _, err := c.ConfigureEventWebhookSigning(ctx, d.Get("signed").(bool)); err.Err != nil {
+		return diag.FromErr(err.Err)
 	}
 
 	webhook := resp.(*sendgrid.EventWebhook)
@@ -300,9 +300,12 @@ func resourceSendgridEventWebhookRead(ctx context.Context, d *schema.ResourceDat
 	c := m.(*sendgrid.Client)
 
 	id := d.Id()
-	webhook, err := c.ReadEventWebhook(ctx, id)
-	if err.Err != nil {
-		return diag.FromErr(err.Err)
+	resp, err := sendgrid.RetryOnRateLimit(ctx, d, func() (interface{}, sendgrid.RequestError) {
+		return c.ReadEventWebhook(ctx, id)
+	})
+	webhook := resp.(*sendgrid.EventWebhook)
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	//nolint:errcheck
@@ -338,10 +341,13 @@ func resourceSendgridEventWebhookRead(ctx context.Context, d *schema.ResourceDat
 	//nolint:errcheck
 	d.Set("oauth_token_url", webhook.OAuthTokenURL)
 
-	webhookSigning, err := c.ReadEventWebhookSigning(ctx)
-	if err.Err != nil {
-		return diag.FromErr(err.Err)
+	resp, err = sendgrid.RetryOnRateLimit(ctx, d, func() (interface{}, sendgrid.RequestError) {
+		return c.ReadEventWebhookSigning(ctx)
+	})
+	if err != nil {
+		return diag.FromErr(err)
 	}
+	webhookSigning := resp.(sendgrid.EventWebhookSigning)
 	//nolint:errcheck
 	d.Set("public_key", webhookSigning.PublicKey)
 	//nolint:errcheck

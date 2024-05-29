@@ -154,7 +154,7 @@ func (c *Client) UpdateEventWebhook(ctx context.Context, id string, enabled bool
 	if err != nil {
 		return nil, RequestError{
 			StatusCode: http.StatusInternalServerError,
-			Err:        fmt.Errorf("failed patching event webhook: %w", err),
+			Err:        fmt.Errorf("failed updating event webhook: %w", err),
 		}
 	}
 
