@@ -109,14 +109,14 @@ func (c *Client) CreateEventWebhook(ctx context.Context, enabled bool, friendlyN
 	if err != nil {
 		return nil, RequestError{
 			StatusCode: http.StatusInternalServerError,
-			Err:        fmt.Errorf("failed patching event webhook: %w", err),
+			Err:        fmt.Errorf("failed creating event webhook: %w", err),
 		}
 	}
 
 	if statusCode >= http.StatusMultipleChoices {
 		return nil, RequestError{
 			StatusCode: statusCode,
-			Err:        fmt.Errorf("%w, status: %d, response: %s", ErrFailedPatchingEventWebhook, statusCode, respBody),
+			Err:        fmt.Errorf("%w, status: %d, response: %s", ErrFailedCreatingEventWebhook, statusCode, respBody),
 		}
 	}
 
