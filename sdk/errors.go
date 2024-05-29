@@ -74,6 +74,8 @@ var (
 
 	ErrFailedPatchingEventWebhook = errors.New("failed to patch event webhook")
 
+	ErrFailedDeletingEventWebhook = errors.New("failed to delete event webhook")
+
 	ErrFailedCreatingDomainAuthentication = errors.New("failed to create domain authentication")
 
 	ErrDomainAuthenticationIDRequired = errors.New("id for domain authentication is required")

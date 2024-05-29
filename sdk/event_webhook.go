@@ -10,6 +10,8 @@ import (
 // EventWebhook is a Sendgrid event webhook settings.
 type EventWebhook struct { //nolint:maligned
 	Enabled           bool   `json:"enabled"`
+	ID                string `json:"id"`
+	FriendlyName      string `json:"friendly_name,omitempty"`
 	URL               string `json:"url,omitempty"`
 	GroupResubscribe  bool   `json:"group_resubscribe"` //nolint:tagliatelle
 	Delivered         bool   `json:"delivered"`
@@ -56,8 +58,28 @@ func parseEventWebhookSigning(respBody string) (*EventWebhookSigning, RequestErr
 	return &body, RequestError{StatusCode: http.StatusOK, Err: nil}
 }
 
-// CreateEventWebhook creates an EventWebhook and returns it.
-func (c *Client) PatchEventWebhook(ctx context.Context, enabled bool, url string, groupResubscribe bool, delivered bool, groupUnsubscribe bool, spamReport bool, bounce bool, deferred bool, unsubscribe bool, processed bool, open bool, click bool, dropped bool, oauthClientID string, oauthClientSecret string, oauthTokenURL string) (*EventWebhook, RequestError) {
+func (c *Client) DeleteEventWebhook(ctx context.Context, id string) RequestError {
+	path := fmt.Sprintf("/user/webhooks/event/settings/%s", id)
+	respBody, statusCode, err := c.Get(ctx, "DELETE", path)
+
+	if err != nil {
+		return RequestError{
+			StatusCode: http.StatusInternalServerError,
+			Err:        fmt.Errorf("failed deleting event webhook %s: %w", id, err),
+		}
+	}
+
+	if statusCode >= http.StatusMultipleChoices {
+		return RequestError{
+			StatusCode: statusCode,
+			Err:        fmt.Errorf("%w, status: %d, response: %s", ErrFailedDeletingEventWebhook, statusCode, respBody),
+		}
+	}
+
+	return RequestError{StatusCode: http.StatusOK, Err: nil}
+}
+
+func (c *Client) CreateEventWebhook(ctx context.Context, enabled bool, friendlyName string, url string, groupResubscribe bool, delivered bool, groupUnsubscribe bool, spamReport bool, bounce bool, deferred bool, unsubscribe bool, processed bool, open bool, click bool, dropped bool, oauthClientID string, oauthClientSecret string, oauthTokenURL string) (*EventWebhook, RequestError) {
 	if url == "" {
 		return nil, RequestError{
 			StatusCode: http.StatusInternalServerError,
@@ -65,8 +87,54 @@ func (c *Client) PatchEventWebhook(ctx context.Context, enabled bool, url string
 		}
 	}
 
-	respBody, statusCode, err := c.Post(ctx, "PATCH", "/user/webhooks/event/settings", EventWebhook{
+	respBody, statusCode, err := c.Post(ctx, "POST", "/user/webhooks/event/settings", EventWebhook{
 		Enabled:           enabled,
+		FriendlyName:      friendlyName,
+		URL:               url,
+		GroupResubscribe:  groupResubscribe,
+		Delivered:         delivered,
+		GroupUnsubscribe:  groupUnsubscribe,
+		SpamReport:        spamReport,
+		Bounce:            bounce,
+		Deferred:          deferred,
+		Unsubscribe:       unsubscribe,
+		Processed:         processed,
+		Open:              open,
+		Click:             click,
+		Dropped:           dropped,
+		OAuthClientID:     oauthClientID,
+		OAuthClientSecret: oauthClientSecret,
+		OAuthTokenURL:     oauthTokenURL,
+	})
+	if err != nil {
+		return nil, RequestError{
+			StatusCode: http.StatusInternalServerError,
+			Err:        fmt.Errorf("failed patching event webhook: %w", err),
+		}
+	}
+
+	if statusCode >= http.StatusMultipleChoices {
+		return nil, RequestError{
+			StatusCode: statusCode,
+			Err:        fmt.Errorf("%w, status: %d, response: %s", ErrFailedPatchingEventWebhook, statusCode, respBody),
+		}
+	}
+
+	return parseEventWebhook(respBody)
+}
+
+func (c *Client) UpdateEventWebhook(ctx context.Context, id string, enabled bool, friendlyName string, url string, groupResubscribe bool, delivered bool, groupUnsubscribe bool, spamReport bool, bounce bool, deferred bool, unsubscribe bool, processed bool, open bool, click bool, dropped bool, oauthClientID string, oauthClientSecret string, oauthTokenURL string) (*EventWebhook, RequestError) {
+	if url == "" {
+		return nil, RequestError{
+			StatusCode: http.StatusInternalServerError,
+			Err:        ErrURLRequired,
+		}
+	}
+	path := fmt.Sprintf("/user/webhooks/event/settings/%s", id)
+
+	respBody, statusCode, err := c.Post(ctx, "PATCH", path, EventWebhook{
+		Enabled:           enabled,
+		FriendlyName:      friendlyName,
 		URL:               url,
 		GroupResubscribe:  groupResubscribe,
 		Delivered:         delivered,
@@ -101,8 +169,9 @@ func (c *Client) PatchEventWebhook(ctx context.Context, enabled bool, url string
 }
 
 // ReadEventWebhook retrieves an EventWebhook and returns it.
-func (c *Client) ReadEventWebhook(ctx context.Context) (*EventWebhook, RequestError) {
-	respBody, _, err := c.Get(ctx, "GET", "/user/webhooks/event/settings")
+func (c *Client) ReadEventWebhook(ctx context.Context, id string) (*EventWebhook, RequestError) {
+	path := fmt.Sprintf("/user/webhooks/event/settings/%s", id)
+	respBody, _, err := c.Get(ctx, "GET", path)
 	if err != nil {
 		return nil, RequestError{
 			StatusCode: http.StatusInternalServerError,
