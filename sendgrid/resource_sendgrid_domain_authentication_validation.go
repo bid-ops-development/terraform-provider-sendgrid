@@ -15,9 +15,9 @@ import (
 	"context"
 	"fmt"
 
+	sendgrid "github.com/bid-ops-development/terraform-provider-sendgrid/sdk"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	sendgrid "github.com/octoenergy/terraform-provider-sendgrid/sdk"
 )
 
 // https://docs.sendgrid.com/api-reference/domain-authentication/validate-a-domain-authentication
