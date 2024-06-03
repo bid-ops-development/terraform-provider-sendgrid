@@ -72,7 +72,11 @@ var (
 
 	ErrURLRequired = errors.New("a url is required")
 
-	ErrFailedPatchingEventWebhook = errors.New("failed to patch event webhook")
+	ErrFailedCreatingEventWebhook = errors.New("failed to create event webhook")
+
+	ErrFailedUpdatingEventWebhook = errors.New("failed to update event webhook")
+
+	ErrFailedDeletingEventWebhook = errors.New("failed to delete event webhook")
 
 	ErrFailedCreatingDomainAuthentication = errors.New("failed to create domain authentication")
 

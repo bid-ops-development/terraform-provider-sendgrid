@@ -36,9 +36,9 @@ import (
 
 func resourceSendgridEventWebhook() *schema.Resource { //nolint:funlen
 	return &schema.Resource{
-		CreateContext: resourceSendgridEventWebhookPatch,
+		CreateContext: resourceSendgridEventWebhookCreate,
 		ReadContext:   resourceSendgridEventWebhookRead,
-		UpdateContext: resourceSendgridEventWebhookPatch,
+		UpdateContext: resourceSendgridEventWebhookUpdate,
 		DeleteContext: resourceSendgridEventWebhookDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -66,6 +66,11 @@ func resourceSendgridEventWebhook() *schema.Resource { //nolint:funlen
 				Description: "Message has been successfully delivered to the receiving server.",
 				Optional:    true,
 				Default:     true,
+			},
+			"friendly_name": {
+				Type:        schema.TypeString,
+				Description: "A friendly name may be assigned to each of your webhooks to help you differentiate them.",
+				Optional:    true,
 			},
 			"group_unsubscribe": {
 				Type: schema.TypeBool,
@@ -163,14 +168,26 @@ func resourceSendgridEventWebhook() *schema.Resource { //nolint:funlen
 }
 
 func resourceSendgridEventWebhookDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	// no op as there is no way to delete it
+	c := m.(*sendgrid.Client)
+
+	id := d.Id()
+	_, err := sendgrid.RetryOnRateLimit(ctx, d, func() (interface{}, sendgrid.RequestError) {
+		return nil, c.DeleteEventWebhook(ctx, id)
+	})
+
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	return nil
 }
 
-func resourceSendgridEventWebhookPatch(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceSendgridEventWebhookUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*sendgrid.Client)
 
+	id := d.Id()
 	enabled := d.Get("enabled").(bool)
+	friendlyName := d.Get("friendly_name").(string)
 	url := d.Get("url").(string)
 	groupResubscribe := d.Get("group_resubscribe").(bool)
 	delivered := d.Get("delivered").(bool)
@@ -188,9 +205,11 @@ func resourceSendgridEventWebhookPatch(ctx context.Context, d *schema.ResourceDa
 	oauthTokenURL := d.Get("oauth_token_url").(string)
 
 	_, err := sendgrid.RetryOnRateLimit(ctx, d, func() (interface{}, sendgrid.RequestError) {
-		return c.PatchEventWebhook(
+		return c.UpdateEventWebhook(
 			ctx,
+			id,
 			enabled,
+			friendlyName,
 			url,
 			groupResubscribe,
 			delivered,
@@ -218,11 +237,61 @@ func resourceSendgridEventWebhookPatch(ctx context.Context, d *schema.ResourceDa
 		}
 	}
 
-	if c.OnBehalfOf != "" {
-		d.SetId(c.OnBehalfOf) // since there is only a global event webhook per subuser
-	} else {
-		d.SetId("default") // or at the parent account level
+	return resourceSendgridEventWebhookRead(ctx, d, m)
+}
+func resourceSendgridEventWebhookCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	c := m.(*sendgrid.Client)
+
+	enabled := d.Get("enabled").(bool)
+	friendlyName := d.Get("friendly_name").(string)
+	url := d.Get("url").(string)
+	groupResubscribe := d.Get("group_resubscribe").(bool)
+	delivered := d.Get("delivered").(bool)
+	groupUnsubscribe := d.Get("group_unsubscribe").(bool)
+	spamReport := d.Get("spam_report").(bool)
+	bounce := d.Get("bounce").(bool)
+	deferred := d.Get("deferred").(bool)
+	unsubscribe := d.Get("unsubscribe").(bool)
+	processed := d.Get("processed").(bool)
+	open := d.Get("open").(bool)
+	click := d.Get("click").(bool)
+	dropped := d.Get("dropped").(bool)
+	oauthClientID := d.Get("oauth_client_id").(string)
+	oauthClientSecret := d.Get("oauth_client_secret").(string)
+	oauthTokenURL := d.Get("oauth_token_url").(string)
+
+	resp, err := sendgrid.RetryOnRateLimit(ctx, d, func() (interface{}, sendgrid.RequestError) {
+		return c.CreateEventWebhook(
+			ctx,
+			enabled,
+			friendlyName,
+			url,
+			groupResubscribe,
+			delivered,
+			groupUnsubscribe,
+			spamReport,
+			bounce,
+			deferred,
+			unsubscribe,
+			processed,
+			open,
+			click,
+			dropped,
+			oauthClientID,
+			oauthClientSecret,
+			oauthTokenURL,
+		)
+	})
+	if err != nil {
+		return diag.FromErr(err)
 	}
+
+	if _, err := c.ConfigureEventWebhookSigning(ctx, d.Get("signed").(bool)); err.Err != nil {
+		return diag.FromErr(err.Err)
+	}
+
+	webhook := resp.(*sendgrid.EventWebhook)
+	d.SetId(webhook.ID)
 
 	return resourceSendgridEventWebhookRead(ctx, d, m)
 }
@@ -230,9 +299,13 @@ func resourceSendgridEventWebhookPatch(ctx context.Context, d *schema.ResourceDa
 func resourceSendgridEventWebhookRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*sendgrid.Client)
 
-	webhook, err := c.ReadEventWebhook(ctx)
-	if err.Err != nil {
-		return diag.FromErr(err.Err)
+	id := d.Id()
+	resp, err := sendgrid.RetryOnRateLimit(ctx, d, func() (interface{}, sendgrid.RequestError) {
+		return c.ReadEventWebhook(ctx, id)
+	})
+	webhook := resp.(*sendgrid.EventWebhook)
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	//nolint:errcheck
@@ -243,6 +316,8 @@ func resourceSendgridEventWebhookRead(ctx context.Context, d *schema.ResourceDat
 	d.Set("group_resubscribe", webhook.GroupResubscribe)
 	//nolint:errcheck
 	d.Set("delivered", webhook.Delivered)
+	//nolint:errcheck
+	d.Set("friendly_name", webhook.FriendlyName)
 	//nolint:errcheck
 	d.Set("group_unsubscribe", webhook.GroupUnsubscribe)
 	//nolint:errcheck
@@ -266,10 +341,13 @@ func resourceSendgridEventWebhookRead(ctx context.Context, d *schema.ResourceDat
 	//nolint:errcheck
 	d.Set("oauth_token_url", webhook.OAuthTokenURL)
 
-	webhookSigning, err := c.ReadEventWebhookSigning(ctx)
-	if err.Err != nil {
-		return diag.FromErr(err.Err)
+	resp, err = sendgrid.RetryOnRateLimit(ctx, d, func() (interface{}, sendgrid.RequestError) {
+		return c.ReadEventWebhookSigning(ctx)
+	})
+	if err != nil {
+		return diag.FromErr(err)
 	}
+	webhookSigning := resp.(*sendgrid.EventWebhookSigning)
 	//nolint:errcheck
 	d.Set("public_key", webhookSigning.PublicKey)
 	//nolint:errcheck
