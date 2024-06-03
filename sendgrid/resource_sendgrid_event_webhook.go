@@ -347,7 +347,7 @@ func resourceSendgridEventWebhookRead(ctx context.Context, d *schema.ResourceDat
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	webhookSigning := resp.(sendgrid.EventWebhookSigning)
+	webhookSigning := resp.(*sendgrid.EventWebhookSigning)
 	//nolint:errcheck
 	d.Set("public_key", webhookSigning.PublicKey)
 	//nolint:errcheck
